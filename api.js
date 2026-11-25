@@ -6,10 +6,21 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const FILE = 'data.json';
 
+// Configuração completa de CORS para aceitar requisições de qualquer origem (inclusive Live Server e file://)
+app.use(cors({ origin: '*' }));
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 // Middlewares
-app.use(cors());
-app.use(express.json()); // Permite receber JSON no corpo das requisições (POST e PUT)
-app.use(express.static('public')); // Serve os arquivos do front-end (index.html, etc.)
+app.use(express.json());
+app.use(express.static('public')); // Serve os arquivos do front-end (index.html, style.css, script.js)
 
 // Funções auxiliares para leitura e gravação no data.json
 function readNotes() {
@@ -85,6 +96,8 @@ app.delete('/api/notes/:id', (req, res) => {
   res.json({ mensagem: 'Nota removida com sucesso' });
 });
 
-app.listen(PORT, () => {
+// Escuta em 0.0.0.0 para aceitar conexões via localhost, 127.0.0.1 ou rede local
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);
+  console.log(`Frontend disponível em http://localhost:${PORT}`);
 });

@@ -1,13 +1,20 @@
-// Detecção inteligente da URL da API (funciona direto na porta 3000 ou via Live Server / VS Code)
-const API_BASE =
-  window.location.port === '3000'
-    ? '/api/notes'
-    : 'http://localhost:3000/api/notes';
+// Determina os possíveis endpoints da API de forma inteligente
+function getCandidates() {
+  if (window.location.protocol === 'file:') {
+    return ['http://localhost:3000', 'http://127.0.0.1:3000'];
+  }
+  if (window.location.port === '3000') {
+    return ['']; // Mesma origem
+  }
+  const host = window.location.hostname || 'localhost';
+  return [
+    `http://${host}:3000`,
+    'http://localhost:3000',
+    'http://127.0.0.1:3000'
+  ];
+}
 
-const STATUS_API =
-  window.location.port === '3000'
-    ? '/api/status'
-    : 'http://localhost:3000/api/status';
+let API_BASE_HOST = getCandidates()[0];
 
 // Elementos do DOM
 const form = document.getElementById('note-form');
@@ -21,10 +28,19 @@ const cancelBtn = document.getElementById('cancel-btn');
 const searchInput = document.getElementById('search-input');
 const notesGrid = document.getElementById('notes-grid');
 const emptyState = document.getElementById('empty-state');
+const emptyDescription = document.getElementById('empty-description');
+const troubleshootBox = document.getElementById('troubleshoot-box');
+const retryBtn = document.getElementById('retry-btn');
 const notesCount = document.getElementById('notes-count');
 const apiStatusBadge = document.getElementById('api-status');
 const statusLabel = document.getElementById('status-label');
 const toast = document.getElementById('toast');
+const fileProtocolWarning = document.getElementById('file-protocol-warning');
+
+// Se aberto como file:///, exibir aviso claro no topo
+if (window.location.protocol === 'file:') {
+  if (fileProtocolWarning) fileProtocolWarning.classList.remove('hidden');
+}
 
 // Estado da aplicação
 let allNotes = [];
@@ -41,19 +57,35 @@ function showToast(message) {
   }, 3000);
 }
 
+// Tentar encontrar o endpoint funcional da API
+async function resolveApiHost() {
+  const candidates = getCandidates();
+  for (const candidate of candidates) {
+    try {
+      const res = await fetch(`${candidate}/api/status`, { mode: 'cors' });
+      if (res.ok) {
+        API_BASE_HOST = candidate;
+        return true;
+      }
+    } catch (e) {
+      // tenta o próximo candidato
+    }
+  }
+  return false;
+}
+
 // Checar conexão com a API
 async function checkApiStatus() {
-  try {
-    const res = await fetch(STATUS_API);
-    if (res.ok) {
-      apiStatusBadge.className = 'api-status-badge online';
-      statusLabel.textContent = 'API Online';
-    } else {
-      throw new Error();
-    }
-  } catch {
+  const isOnline = await resolveApiHost();
+  if (isOnline) {
+    apiStatusBadge.className = 'api-status-badge online';
+    statusLabel.textContent = 'API Online';
+    if (troubleshootBox) troubleshootBox.classList.add('hidden');
+    return true;
+  } else {
     apiStatusBadge.className = 'api-status-badge offline';
     statusLabel.textContent = 'API Offline';
+    return false;
   }
 }
 
@@ -74,23 +106,34 @@ function formatDate(dateString) {
 
 // Buscar notas da API (GET)
 async function fetchNotes() {
+  const isOnline = await checkApiStatus();
+
+  if (!isOnline) {
+    notesGrid.innerHTML = '';
+    emptyState.classList.remove('hidden');
+    emptyState.querySelector('h3').textContent = 'Erro ao conectar à API';
+    emptyDescription.textContent =
+      'Não foi possível estabelecer conexão com o servidor Node.js.';
+    if (troubleshootBox) troubleshootBox.classList.remove('hidden');
+    notesCount.textContent = '0 notas';
+    return;
+  }
+
   try {
-    const response = await fetch(API_BASE);
+    const response = await fetch(`${API_BASE_HOST}/api/notes`);
     if (!response.ok) throw new Error('Erro ao buscar notas');
 
     allNotes = await response.json();
-    apiStatusBadge.className = 'api-status-badge online';
-    statusLabel.textContent = 'API Online';
     renderNotes();
   } catch (err) {
-    console.error('Erro:', err);
+    console.error('Erro ao listar notas:', err);
     apiStatusBadge.className = 'api-status-badge offline';
     statusLabel.textContent = 'API Offline';
     notesGrid.innerHTML = '';
     emptyState.classList.remove('hidden');
-    emptyState.querySelector('h3').textContent = 'Erro ao conectar à API';
-    emptyState.querySelector('p').textContent =
-      'Certifique-se de que o servidor está rodando (npm start).';
+    emptyState.querySelector('h3').textContent = 'Erro ao carregar dados';
+    emptyDescription.textContent = err.message;
+    if (troubleshootBox) troubleshootBox.classList.remove('hidden');
     notesCount.textContent = '0 notas';
   }
 }
@@ -113,12 +156,13 @@ function renderNotes() {
 
   if (filteredNotes.length === 0) {
     emptyState.classList.remove('hidden');
+    if (troubleshootBox) troubleshootBox.classList.add('hidden');
     if (query) {
       emptyState.querySelector('h3').textContent = 'Nenhuma nota correspondente';
-      emptyState.querySelector('p').textContent = `Nenhum resultado encontrado para "${query}".`;
+      emptyDescription.textContent = `Nenhum resultado encontrado para "${query}".`;
     } else {
       emptyState.querySelector('h3').textContent = 'Nenhuma nota ainda';
-      emptyState.querySelector('p').textContent = 'Crie sua primeira nota preenchendo o formulário acima!';
+      emptyDescription.textContent = 'Crie sua primeira nota preenchendo o formulário acima!';
     }
     return;
   }
@@ -171,7 +215,7 @@ form.addEventListener('submit', async (e) => {
   try {
     if (id) {
       // Modo Edição (PUT)
-      const res = await fetch(`${API_BASE}/${id}`, {
+      const res = await fetch(`${API_BASE_HOST}/api/notes/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ titulo, texto })
@@ -181,7 +225,7 @@ form.addEventListener('submit', async (e) => {
       showToast('✅ Nota atualizada com sucesso!');
     } else {
       // Modo Criação (POST)
-      const res = await fetch(API_BASE, {
+      const res = await fetch(`${API_BASE_HOST}/api/notes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ titulo, texto })
@@ -255,7 +299,7 @@ function resetForm() {
 // Excluir nota (DELETE)
 async function deleteNote(id) {
   try {
-    const res = await fetch(`${API_BASE}/${id}`, {
+    const res = await fetch(`${API_BASE_HOST}/api/notes/${id}`, {
       method: 'DELETE'
     });
 
@@ -274,6 +318,12 @@ searchInput.addEventListener('input', () => {
   renderNotes();
 });
 
+// Botão de tentar reconectar
+if (retryBtn) {
+  retryBtn.addEventListener('click', () => {
+    fetchNotes();
+  });
+}
+
 // Inicialização
-checkApiStatus();
 fetchNotes();

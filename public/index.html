@@ -7,6 +7,12 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
+    <!-- Alerta caso tenha sido aberto via arquivo local (file://) -->
+    <div id="file-protocol-warning" class="protocol-warning hidden">
+      <span>⚠️ <strong>Atenção:</strong> Você abriu o arquivo diretamente (<code>file:///</code>). Os navegadores bloqueiam requisições para a API nesse modo por segurança.</span>
+      <a href="http://localhost:3000" id="open-localhost-link" class="warning-link">Abrir em http://localhost:3000</a>
+    </div>
+
     <div class="app-container">
       <!-- Cabeçalho -->
       <header class="app-header">
@@ -88,7 +94,15 @@
           <div id="empty-state" class="empty-state hidden">
             <div class="empty-icon">📝</div>
             <h3>Nenhuma nota encontrada</h3>
-            <p>Crie uma nova anotação acima para começar a organizar suas ideias.</p>
+            <p id="empty-description">Crie uma nova anotação acima para começar a organizar suas ideias.</p>
+            <div id="troubleshoot-box" class="troubleshoot-box hidden">
+              <p><strong>Dicas para conectar:</strong></p>
+              <ul>
+                <li>Abra o navegador em <a href="http://localhost:3000">http://localhost:3000</a> (não clique duas vezes no arquivo HTML).</li>
+                <li>Verifique se o terminal está com <code>npm start</code> rodando.</li>
+              </ul>
+              <button id="retry-btn" class="btn btn-secondary btn-sm" style="margin-top: 0.75rem;">🔄 Tentar reconectar</button>
+            </div>
           </div>
         </section>
       </main>
