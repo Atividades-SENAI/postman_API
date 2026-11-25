@@ -9,6 +9,7 @@ const FILE = 'data.json';
 // Middlewares
 app.use(cors());
 app.use(express.json()); // Permite receber JSON no corpo das requisições (POST e PUT)
+app.use(express.static('public')); // Serve os arquivos do front-end (index.html, etc.)
 
 // Funções auxiliares para leitura e gravação no data.json
 function readNotes() {
@@ -24,8 +25,8 @@ function saveNotes(notes) {
   fs.writeFileSync(FILE, JSON.stringify(notes, null, 2));
 }
 
-// Rota raiz de teste
-app.get('/', (req, res) => {
+// Rota de status da API
+app.get('/api/status', (req, res) => {
   res.json({
     date: new Date().toLocaleString('pt-BR'),
     status: 'API funcionando com sucesso!'
@@ -67,8 +68,8 @@ app.put('/api/notes/:id', (req, res) => {
   const notes = readNotes();
   const index = notes.findIndex(n => n.id === req.params.id);
   if (index >= 0) {
-    notes[index].titulo = req.body.titulo || notes[index].titulo;
-    notes[index].texto = req.body.texto || notes[index].texto;
+    notes[index].titulo = req.body.titulo !== undefined ? req.body.titulo : notes[index].titulo;
+    notes[index].texto = req.body.texto !== undefined ? req.body.texto : notes[index].texto;
     saveNotes(notes);
     res.json(notes[index]);
   } else {
@@ -85,5 +86,5 @@ app.delete('/api/notes/:id', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Servidor rodando em http://localhost:${PORT}/api/notes`);
+  console.log(`Servidor rodando em http://localhost:${PORT}`);
 });

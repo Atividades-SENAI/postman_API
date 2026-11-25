@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Minhas Notas - API Express</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- Cabeçalho -->
+      <header class="app-header">
+        <div class="header-content">
+          <div class="title-group">
+            <span class="tag">Gerenciador de Notas</span>
+            <h1>Minhas Notas</h1>
+          </div>
+          <div class="api-status-badge" id="api-status">
+            <span class="status-dot"></span>
+            <span id="status-label">Verificando API...</span>
+          </div>
+        </div>
+      </header>
+
+      <main class="main-content">
+        <!-- Formulário para Criar/Editar Nota -->
+        <section class="card form-card">
+          <div class="card-header">
+            <h2 id="form-title">Nova Nota</h2>
+            <span id="edit-indicator" class="badge-editing hidden">Modo de Edição</span>
+          </div>
+
+          <form id="note-form">
+            <input type="hidden" id="note-id" value="" />
+
+            <div class="input-group">
+              <label for="note-title">Título</label>
+              <input
+                type="text"
+                id="note-title"
+                placeholder="Ex: Tarefas do dia, Ideia de projeto..."
+                required
+              />
+            </div>
+
+            <div class="input-group">
+              <label for="note-content">Conteúdo</label>
+              <textarea
+                id="note-content"
+                rows="4"
+                placeholder="Escreva os detalhes da sua anotação aqui..."
+                required
+              ></textarea>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" id="save-btn" class="btn btn-primary">
+                Salvar Nota
+              </button>
+              <button
+                type="button"
+                id="cancel-btn"
+                class="btn btn-secondary hidden"
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <!-- Barra de Busca e Filtro -->
+        <section class="search-bar">
+          <input
+            type="text"
+            id="search-input"
+            placeholder="🔍 Pesquisar notas por título ou conteúdo..."
+          />
+          <div class="notes-count" id="notes-count">0 notas</div>
+        </section>
+
+        <!-- Lista de Notas -->
+        <section class="notes-section">
+          <div id="notes-grid" class="notes-grid">
+            <!-- As notas serão inseridas dinamicamente aqui -->
+          </div>
+
+          <!-- Estado Vazio -->
+          <div id="empty-state" class="empty-state hidden">
+            <div class="empty-icon">📝</div>
+            <h3>Nenhuma nota encontrada</h3>
+            <p>Crie uma nova anotação acima para começar a organizar suas ideias.</p>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Toast / Notificação simples -->
+    <div id="toast" class="toast hidden"></div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
